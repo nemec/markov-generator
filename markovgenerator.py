@@ -3,13 +3,17 @@ import random
 import cPickle as pickle
 from collections import defaultdict
 
-def containsAny(string, vals):
-  for x in string:
-    if x in vals:
-      return 1
-  return 0
 
 class MarkovGenerator(object):
+  """ A sentence generator using a Markov Chain.
+      The "order" is the number of words in a single
+      link of the chain.
+      
+      This program will parse a list of textfiles to use
+      as training data for the generator, then it generates
+      a number of sentences which are then written to a file.
+      
+  """
 
   def __init__(self, order = 1):
     self.seed = None
@@ -60,7 +64,8 @@ class MarkovGenerator(object):
         continue
       key = tuple(words[ix:ix+self.order])
 
-      if not containsAny(key, self.punct):
+      if not any(map(lambda c: c in self.punct, key)):
+        """ Doesn't contain any punctuation """
         if opener:
           """ Mark the first words in a sentence as "openers" to seed the
               generator
@@ -121,32 +126,27 @@ class MarkovGenerator(object):
 
 
 if __name__ == "__main__":
-  m = MarkovGenerator(1)
-  files = ["taoteching.txt"]#["montecristo.txt", "lesmis.txt", "dracula.txt", "huckfinn.txt",
-          # "prideandprejudice.txt", "sherlockholmes.txt", "taleoftwocities.txt",
-          # "phantom.txt", "alice.txt"]
+  m = MarkovGenerator(2)
+  files = ["montecristo.txt"]
   for filename in files:
     f = open(filename, 'r')
     data = f.read()
-    print "training", filename, "..."
+    print "training with", filename, "..."
     m.train(data)
     f.close()
   #m.save_training_data("train.pickle")
   #m.load_training_data("train.pickle")
   print "generating output..."
   sents = []
-  tot = 0
-  while len(sents) < 1000:
+  while len(sents) < 100:
     sent = m.next_sentence()
-    if sent[-1] in m.punct:
+    # Long sentences have a better chance of being "new"
+    if sent[-1] in m.punct and len(sent.split()) > 5:
       sents.append(sent)
-      tot += len(sent.split())
-
-  print "Average length:", 1.0 * tot / len(sents)
   
   f = open("out.txt", 'w')
-  for x in xrange(5000):
-    f.write(m.next_sentence())
+  for sent in sents:
+    f.write(sent)
     f.write("\n")
   f.close()
 
